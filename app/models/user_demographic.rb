@@ -1,0 +1,2 @@
+class UserDemographic < ApplicationModel
+end

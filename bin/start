@@ -1,0 +1,13 @@
+#!/bin/bash
+
+set -e
+
+if [ "$DBTEST" = true ]; then
+  rake db:migrate
+fi
+
+if [ -f tmp/pids/server.pid ]; then
+  rm tmp/pids/server.pid
+fi
+
+exec "$@"
