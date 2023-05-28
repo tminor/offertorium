@@ -20,6 +20,14 @@ module Api
         required(:username).value(:string)
       end
 
+      schema(:offers) do
+        required(:username).value(:string)
+      end
+
+      def offers
+
+      end
+
       private
 
       def repo
