@@ -25,7 +25,7 @@ module Api
       end
 
       def offers
-
+        response_for(repo.with_offers(safe_params))
       end
 
       private

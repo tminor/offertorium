@@ -14,27 +14,30 @@ class DemographicsRepository < Repository[:demographics]
       processed
     end
 
-    result.success? ? Success(result.value!) : Failure(result)
+    result.success? ? Success(result.value!) : Failure[:demographic_preprocessing_failed, :internal_server_error, result.exception]
   end
 
   def postprocess(demographic)
     result = Try do
-      users(demographic.to_h).map do |user|
+      users_for(demographic.to_h.except(:name)).map do |user|
         users_demographics.changeset(:create)
                           .associate(demographic, :demographic)
                           .associate(user, :user)
                           .commit
       end
 
-      result.success? ? Success(result.value!) : Failure[:postprocessing_failed, :internal_server_error, result.exception]
     end
+
+    result.success? ? Success(result.value!) : Failure[:demographic_postprocessing_failed, :internal_server_error, result.exception]
   end
 
-  def users(demographic)
-    repo = UsersRepository.new(container)
-    repo.by_date_range(demographic[:date_range])
-        .where(gender: demographic[:gender])
-        .to_a
+  def users_for(demographic)
+    query = users.where(demographic.except(:date_range))
+
+    return query unless demographic[:date_range]
+
+    query.where { birth_date > demographic[:date_range][:lower] }
+         .where { birth_date < demographic[:date_range][:lower] }
   end
 
   def with_offers

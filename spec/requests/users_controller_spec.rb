@@ -76,4 +76,37 @@ RSpec.describe 'UsersController', type: :request do
       end
     end
   end
+
+  describe 'GET /api/v1/users/offers' do
+    context 'given a valid username' do
+      it 'responds with ok status and offers' do
+        post '/api/v1/demographics', params: {
+          name: 'foo',
+          start_date: '2000-01-01',
+          end_date: '2030-12-31',
+          gender: 'male'
+        }
+
+        post '/api/v1/users', params: valid_params
+
+        post '/api/v1/offers', params: {
+          name: 'widgets',
+          target_demographic: {
+            date_range: {
+              from: '2001-01-01',
+              to: '2008-01-01'
+            }
+          }
+        }
+
+        get '/api/v1/users/offers', params: { username: 'foobar' }
+
+        json = JSON.parse(response.body)
+
+        offers = json['offers'].map { |o| o['name'] }
+
+        expect(offers).to eq ['widgets']
+      end
+    end
+  end
 end

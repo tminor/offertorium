@@ -24,7 +24,7 @@ class ApplicationController < ActionController::API
     in Success[json, status]
       render json:, status:
     in Success(_)
-      entity = relation.map_to(model).by_pk(result.value!.id).one
+      entity = relation.by_pk(result.value![:id]).one
       render json: entity, status: :ok
     in Failure[reason, status, errors]
       render json: { reason:, errors: }, status:

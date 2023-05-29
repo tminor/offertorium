@@ -2,16 +2,15 @@ class OffersRepository < Repository[:offers]
   def preprocess(offer)
     result = Try { offer.except(:target_demographic) }
 
-    result.success? ? Success(result.value!) : Failure[:preprocessing_failed, :internal_server_error, result.exception]
+    result.success? ? Success(result.value!) : Failure[:offers_preprocessing_failed, :internal_server_error, result.exception]
   end
 
   def postprocess(offer)
     result = Try do
-      combine_demographics(offer)
-      combine_users(offer)
+      [combine_demographics(offer), combine_users(offer)]
     end
 
-    result.success? ? Success(result.value!) : Failure[:postprocessing_failed, result.exception]
+    result.success? ? Success[*result.value!] : Failure[:offers_postprocessing_failed, result.exception]
   end
 
   def combine_demographics(offer)
@@ -24,8 +23,8 @@ class OffersRepository < Repository[:offers]
   end
 
   def combine_users(offer)
-    offers.combine(:demographics).by_pk(offer.id).map do |demographic|
-      demographics.combine(:users).by_pk(demographic.id).users do |user|
+    offers.by_pk(offer[:id]).combine(:demographics)&.demographics&.map do |demographic|
+      demographics.by_pk(demographic[:id]).combine(:users).one.users.map do |user|
         users_offers.changeset(:create)
                     .associate(user, :user)
                     .associate(offer, :offer)
@@ -34,9 +33,11 @@ class OffersRepository < Repository[:offers]
     end
   end
 
-  def demographics_for(query)
-    demographics.where do
-      date_range.overlap(query[:date_range][:from]..query[:date_range][:to])
-    end.where(query.except(:date_range))
+  def demographics_for(target)
+    query = demographics.where(target.except(:date_range))
+
+    return query unless target[:date_range]
+
+    query.where { date_range.overlap(target[:date_range][:from]..target[:date_range][:to]) }
   end
 end

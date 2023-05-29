@@ -26,7 +26,7 @@ class Repository < ROM::Repository::Root
 
       @persisted = yield persist(@staged)
 
-      postprocess(@persisted)
+      yield postprocess(@persisted)
 
       Success(@persisted)
     end

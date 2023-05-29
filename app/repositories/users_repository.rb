@@ -2,12 +2,9 @@ class UsersRepository < Repository[:users]
   struct_namespace nil
 
   def postprocess(user)
-    result = Try do
-      combine_demographics(user)
-      combine_offers(user)
-    end
+    result = Try { [combine_demographics(user), combine_offers(user)] }
 
-    result.success? ? Success(result.value!) : Failure[:postprocessing_failed, :internal_server_error, result.exception]
+    result.success? ? Success[*result.value!] : Failure[:user_postprocessing_failed, :internal_server_error, result.exception]
   end
 
   def combine_demographics(user)
@@ -48,7 +45,9 @@ class UsersRepository < Repository[:users]
     users.combine(:demographics)
   end
 
-  def with_offers
-    users.combine(:offers)
+  def with_offers(user)
+    result = Try { users.combine(:offers).where(user.to_h).one! }
+
+    result.success? ? Success[result.value!, :ok] : Failure[:unable_to_find_offers, :internal_server_error, result.exception]
   end
 end
